@@ -1,0 +1,21 @@
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [
+    "EyesDataset",
+    ".venv",
+    "venv",
+    "__pycache__",
+]
+extend-exclude = [
+    "project.ipynb",
+    "test_model_accuracy.py",
+    "test_model_eyesdataset2.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

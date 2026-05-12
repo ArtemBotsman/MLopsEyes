@@ -1,0 +1,12 @@
+.git
+.github
+__pycache__
+.pytest_cache
+.ruff_cache
+.venv
+venv
+EyesDataset
+tests
+README.md
+*.pyc
+.DS_Store
