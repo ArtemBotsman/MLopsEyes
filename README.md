@@ -1,97 +1,117 @@
-# Классификатор открытых/закрытых глаз
+# Open Eyes Classifier — MLOps CI/CD demo
 
-Этот проект содержит обученную нейронную сеть для классификации изображений глаз на открытые/закрытые.
+## Описание проекта
 
-## Описание
+Бинарный классификатор изображений глаз по двум классам:
 
-Классификатор использует сверточную нейронную сеть (CNN) для определения, открыт глаз или закрыт на изображении. Модель возвращает оценку (score) от 0.0 до 1.0:
-- **1.0** = глаз открыт
-- **0.0** = глаз закрыт
+- **opened** — глаз открыт
+- **closed** — глаз закрыт
 
-## Требования
+Модель (**MediumEyeCNN**) возвращает **score** от **0.0** до **1.0**:
 
-- Python 3.6+
-- PyTorch
-- Pillow (PIL)
+- ближе к **1.0** — глаз открыт
+- ближе к **0.0** — глаз закрыт
 
-## Установка
-
-1. Установите необходимые зависимости:
-```bash
-pip install -r requirements.txt
-```
-
-## Использование
-
-### Базовое использование
-
-Запустите скрипт с указанием пути к изображению глаза:
-
-```bash
-python open_eyes_classifier.py путь/к/изображению.jpg
-```
-
-Скрипт выведет число от 0.0 до 1.0 в стандартный вывод (stdout).
-
-### Примеры
-
-```bash
-# Классификация изображения открытого глаза
-python open_eyes_classifier.py EyesDataset/opened/003035.jpg
-# Вывод: 1.0000
-
-# Классификация изображения закрытого глаза
-python open_eyes_classifier.py EyesDataset/closed/002851.jpg
-# Вывод: 0.0017
-
-# Использование другого файла с весами модели
-python open_eyes_classifier.py путь/к/изображению.jpg --weights путь/к/весам.pth
-```
-
-### Параметры командной строки
-
-- `image_path` (обязательный) - полный путь к изображению глаза для классификации
-- `--weights` (опциональный) - путь к файлу с весами модели (по умолчанию: `eye_cnn_best_val.pth`)
-
-### Справка
-
-Для получения справки используйте:
-
-```bash
-python open_eyes_classifier.py --help
-```
+Порог по умолчанию для текстовой интерпретации в CLI: **0.5**.
 
 ## Структура проекта
 
-```
-Open_eyes_classifier/
-├── open_eyes_classifier.py    # Основной скрипт с классом OpenEyesClassificator
-├── eye_cnn_best_val.pth       # Обученные веса модели
-├── requirements.txt            # Зависимости проекта
-├── README.md                   # Этот файл
-└── EyesDataset/                # Обучающая выборка (необязательно для инференса)
-    ├── opened/                 # Изображения открытых глаз
-    └── closed/                 # Изображения закрытых глаз
-```
+| Файл / папка | Назначение |
+|--------------|------------|
+| `open_eyes_classifier.py` | CLI и класс `OpenEyesClassificator` для инференса |
+| `eye_cnn_best_val_final.pth` | Актуальные веса обученной модели |
+| `EyesDataset/` | Датасет для примеров и ручной проверки (`opened/`, `closed/`) |
+| `tests/test_cli.py` | Автотесты CLI (help, predict, диапазон score) |
+| `Dockerfile` | Образ для запуска классификатора в контейнере |
+| `.github/workflows/ci-cd.yml` | GitHub Actions: lint, test, build, publish |
+| `requirements.txt` | Runtime-зависимости (PyTorch, Pillow) |
+| `requirements-dev.txt` | Dev-зависимости (pytest, ruff) |
+| `pyproject.toml` | Настройки Ruff и pytest |
 
-## Использование в Python коде
+Дополнительно в репозитории: `project.ipynb` (обучение), скрипты ручной оценки `test_model_*.py`.
 
-Вы также можете использовать классификатор как Python модуль:
+## Локальный запуск
 
-```python
-from open_eyes_classifier import OpenEyesClassificator
+Требования: **Python 3.10+**.
 
-# Инициализация классификатора
-classifier = OpenEyesClassificator(weights_path="eye_cnn_best_val.pth")
-
-# Предсказание
-score = classifier.predict("путь/к/изображению.jpg")
-print(f"Score: {score:.4f}")  # Score: 1.0000 (открыт) или 0.0017 (закрыт)
+```bash
+python -m pip install -r requirements.txt
+python open_eyes_classifier.py EyesDataset/opened/003035.jpg
+python open_eyes_classifier.py --help
 ```
 
-## Технические детали
+По умолчанию используются веса `eye_cnn_best_val_final.pth`. Другой файл весов:
 
-- **Архитектура**: MediumEyeCNN с 3 сверточными слоями
-- **Размер входного изображения**: 24x24 пикселя (автоматически изменяется)
-- **Формат изображения**: Поддерживаются все форматы, которые может открыть Pillow (JPEG, PNG и т.д.)
-- **Предобработка**: Изображение автоматически преобразуется в grayscale и масштабируется
+```bash
+python open_eyes_classifier.py путь/к/изображению.jpg --weights путь/к/весам.pth
+```
+
+## Запуск тестов и линтера
+
+```bash
+python -m pip install -r requirements-dev.txt
+ruff check .
+pytest -v
+```
+
+## Docker
+
+Сборка образа:
+
+```bash
+docker build -t open-eyes-classifier .
+```
+
+Запуск с монтированием датасета:
+
+```bash
+docker run --rm -v "$(pwd)/EyesDataset:/app/EyesDataset" open-eyes-classifier EyesDataset/opened/003035.jpg
+```
+
+## CI/CD
+
+Используется **GitHub Actions** (workflow: `.github/workflows/ci-cd.yml`).
+
+**CI** запускается:
+
+- при **pull_request** в `main`
+- при **push** в `main`
+
+**CI** выполняет:
+
+- установку зависимостей (`requirements-dev.txt`)
+- `ruff check .`
+- `pytest -v`
+- сборку Docker-образа (`docker build`, без публикации на PR)
+
+**CD** выполняет:
+
+- после **push** / merge в `main` — сборку Docker-образа и публикацию в **GitHub Container Registry (GHCR)**
+
+Опубликованный образ:
+
+```text
+ghcr.io/artembotsman/mlopseyes:latest
+```
+
+Репозиторий: https://github.com/ArtemBotsman/MLopsEyes
+
+## Что уже реализовано
+
+- GitHub repository
+- GitHub Actions workflow
+- Ruff lint
+- Pytest tests
+- Docker build
+- Docker publish to GHCR
+
+## Что будет добавлено позже
+
+- FastAPI + OpenAPI
+- DVC
+- MLflow
+- drift detection
+- Prometheus + Grafana
+- Web UI
+- Kubernetes/minikube
+- Argo CD
