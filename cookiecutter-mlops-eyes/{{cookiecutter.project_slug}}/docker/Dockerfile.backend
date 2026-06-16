@@ -1,0 +1,15 @@
+FROM python:{{cookiecutter.python_version}}-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+COPY backend ./backend
+
+ENV PYTHONPATH=/app
+
+EXPOSE {{cookiecutter.backend_port}}
+
+CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "{{cookiecutter.backend_port}}"]

@@ -1,0 +1,59 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    ports:
+      - "{{cookiecutter.backend_port}}:{{cookiecutter.backend_port}}"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - mlflow
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "{{cookiecutter.frontend_port}}:{{cookiecutter.frontend_port}}"
+    environment:
+      - API_URL=http://backend:{{cookiecutter.backend_port}}
+      - PROMETHEUS_URL=http://localhost:{{cookiecutter.prometheus_port}}
+      - GRAFANA_URL=http://localhost:{{cookiecutter.grafana_port}}
+      - MLFLOW_URL=http://localhost:{{cookiecutter.mlflow_port}}
+    depends_on:
+      - backend
+      - mlflow
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    ports:
+      - "{{cookiecutter.mlflow_port}}:5000"
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+    volumes:
+      - mlflow_data:/mlflow
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "{{cookiecutter.prometheus_port}}:9090"
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "{{cookiecutter.grafana_port}}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+
+volumes:
+  mlflow_data:

@@ -11,6 +11,7 @@ extend-exclude = [
     "project.ipynb",
     "test_model_accuracy.py",
     "test_model_eyesdataset2.py",
+    "cookiecutter-mlops-eyes",
 ]
 
 [tool.ruff.lint]

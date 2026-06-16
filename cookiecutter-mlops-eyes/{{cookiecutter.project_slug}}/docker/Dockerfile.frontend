@@ -1,0 +1,15 @@
+FROM python:{{cookiecutter.python_version}}-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir streamlit
+
+COPY frontend ./frontend
+
+ENV API_URL=http://backend:{{cookiecutter.backend_port}}
+
+EXPOSE {{cookiecutter.frontend_port}}
+
+CMD ["streamlit", "run", "frontend/streamlit_app.py", "--server.port={{cookiecutter.frontend_port}}", "--server.address=0.0.0.0"]

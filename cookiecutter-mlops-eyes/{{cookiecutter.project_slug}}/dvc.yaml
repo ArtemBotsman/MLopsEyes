@@ -1,0 +1,12 @@
+stages:
+  train:
+    cmd: python -m backend.src.train --epochs 3
+    deps:
+      - backend/src/train.py
+    params:
+      - params.yaml:
+          - train.epochs
+          - train.batch_size
+    outs:
+      - artifacts/models/{{cookiecutter.model_name}}.pth:
+          cache: true

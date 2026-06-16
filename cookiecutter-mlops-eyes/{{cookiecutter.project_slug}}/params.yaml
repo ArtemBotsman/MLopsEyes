@@ -1,0 +1,8 @@
+train:
+  epochs: 3
+  batch_size: 32
+  learning_rate: 0.001
+
+drift:
+  ks_alpha: 0.05
+  target_drift_threshold: 0.2
