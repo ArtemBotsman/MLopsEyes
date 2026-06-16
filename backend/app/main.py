@@ -12,13 +12,16 @@ from starlette.responses import Response
 from backend.app.schemas import (
     DriftLatestResponse,
     DriftRunResponse,
+    ExperimentsResponse,
     HealthResponse,
+    ModelsResponse,
     PredictionRecord,
     PredictionsListResponse,
     PredictResponse,
 )
 from backend.app.services.drift_service import get_latest_drift_report, run_drift_report
 from backend.app.services.metrics_service import record_drift_report, record_prediction
+from backend.app.services.mlflow_service import list_experiments, list_registered_models
 from backend.app.services.predictor import MODEL_VERSION, predict_upload
 from backend.app.storage import init_db, list_predictions, save_prediction
 
@@ -96,6 +99,18 @@ def drift_latest() -> DriftLatestResponse:
             message="drift report not generated yet",
         )
     return DriftLatestResponse(status="available", report=report)
+
+
+@app.get("/experiments", response_model=ExperimentsResponse)
+def experiments() -> ExperimentsResponse:
+    result = list_experiments()
+    return ExperimentsResponse(**result)
+
+
+@app.get("/models", response_model=ModelsResponse)
+def models() -> ModelsResponse:
+    result = list_registered_models()
+    return ModelsResponse(**result)
 
 
 @app.get("/metrics")

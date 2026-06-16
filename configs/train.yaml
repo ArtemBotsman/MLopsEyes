@@ -1,0 +1,7 @@
+epochs: 3
+batch_size: 32
+learning_rate: 0.001
+experiment_name: open-eyes-classifier
+registered_model_name: open-eyes-cnn
+model_output_path: artifacts/models/open_eyes_cnn_mlflow.pth
+dataset_path: EyesDataset

@@ -10,6 +10,9 @@ __pycache__/
 data/predictions.db
 reports/drift/latest_drift_report.json
 reports/drift/latest_drift_report.html
+mlruns/
+artifacts/models/*.pth
+artifacts/training/
 
 /EyesDataset
 /EyesDataset2

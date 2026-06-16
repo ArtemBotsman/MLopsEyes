@@ -42,3 +42,15 @@ class DriftLatestResponse(BaseModel):
     status: str
     message: str | None = None
     report: dict | None = None
+
+
+class ExperimentsResponse(BaseModel):
+    status: str
+    message: str | None = None
+    experiments: list[dict] | None = None
+
+
+class ModelsResponse(BaseModel):
+    status: str
+    message: str | None = None
+    models: list[dict] | None = None

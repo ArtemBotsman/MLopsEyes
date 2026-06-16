@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir --default-timeout=1000 \
     torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir --default-timeout=1000 \
-    fastapi uvicorn python-multipart prometheus-client pandas numpy scipy scikit-learn pydantic Pillow
+    fastapi uvicorn python-multipart prometheus-client pandas numpy scipy scikit-learn pydantic Pillow mlflow matplotlib PyYAML
 
 COPY open_eyes_classifier.py .
 COPY eye_cnn_best_val_final.pth .

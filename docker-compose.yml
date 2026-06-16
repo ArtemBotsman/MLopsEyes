@@ -15,6 +15,22 @@ services:
       - CURRENT_DATASET=/app/data/incoming
       - DRIFT_REPORT_DIR=/app/reports/drift
       - MODEL_WEIGHTS_PATH=/app/eye_cnn_best_val_final.pth
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - mlflow
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    ports:
+      - "5001:5000"
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+    volumes:
+      - mlflow_data:/mlflow
 
   prometheus:
     image: prom/prometheus:latest
@@ -37,3 +53,6 @@ services:
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
+
+volumes:
+  mlflow_data:

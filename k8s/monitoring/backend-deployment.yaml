@@ -28,3 +28,5 @@ spec:
               value: /app/data/incoming
             - name: DRIFT_REPORT_DIR
               value: /app/reports/drift
+            - name: MLFLOW_TRACKING_URI
+              value: http://mlflow-service:5000
