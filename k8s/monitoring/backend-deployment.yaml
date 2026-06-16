@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: mlops-eyes
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: mlops-eyes-backend:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MODEL_WEIGHTS_PATH
+              value: /app/eye_cnn_best_val_final.pth
+            - name: REFERENCE_DATASET
+              value: /app/EyesDataset
+            - name: CURRENT_DATASET
+              value: /app/data/incoming
+            - name: DRIFT_REPORT_DIR
+              value: /app/reports/drift

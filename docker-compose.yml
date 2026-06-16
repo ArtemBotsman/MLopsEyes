@@ -1,0 +1,39 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./EyesDataset:/app/EyesDataset
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./eye_cnn_best_val_final.pth:/app/eye_cnn_best_val_final.pth
+    environment:
+      - REFERENCE_DATASET=/app/EyesDataset
+      - CURRENT_DATASET=/app/data/incoming
+      - DRIFT_REPORT_DIR=/app/reports/drift
+      - MODEL_WEIGHTS_PATH=/app/eye_cnn_best_val_final.pth
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus

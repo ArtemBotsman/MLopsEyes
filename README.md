@@ -26,7 +26,11 @@
 | `.github/workflows/ci-cd.yml` | GitHub Actions: lint, test, build, publish |
 | `requirements.txt` | Runtime-зависимости (PyTorch, Pillow) |
 | `requirements-dev.txt` | Dev-зависимости (pytest, ruff) |
-| `pyproject.toml` | Настройки Ruff и pytest |
+| `backend/app/main.py` | FastAPI backend (инференс, drift, metrics) |
+| `frontend/` | Заготовка под Web UI (следующий этап) |
+| `docker-compose.yml` | Backend + Prometheus + Grafana |
+| `k8s/monitoring/` | Manifests для minikube |
+| `docs/drift_monitoring.md` | Документация по drift и мониторингу |
 
 Дополнительно в репозитории: `project.ipynb` (обучение), скрипты ручной оценки `test_model_*.py`.
 
@@ -107,11 +111,80 @@ ghcr.io/artembotsman/mlopseyes:latest
 
 ## Что будет добавлено позже
 
-- FastAPI + OpenAPI
 - DVC
 - MLflow
-- drift detection
-- Prometheus + Grafana
-- Web UI
-- Kubernetes/minikube
-- Argo CD
+- Полноценный Web UI в `frontend/`
+- Argo CD (CD в самом конце проекта)
+
+## Backend API
+
+```bash
+python -m pip install -r requirements-dev.txt
+uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+OpenAPI: http://localhost:8000/docs
+
+Основные эндпоинты:
+
+- `GET /health`
+- `POST /predict`
+- `GET /predictions`
+- `POST /drift/run`
+- `GET /drift/latest`
+- `GET /metrics`
+
+## Drift reports
+
+```bash
+python -m backend.src.drift --reference EyesDataset --current data/incoming --output reports/drift
+```
+
+Отчёты сохраняются в:
+
+- `reports/drift/latest_drift_report.json`
+- `reports/drift/latest_drift_report.html`
+
+Подробнее: `docs/drift_monitoring.md`
+
+## Prometheus / Grafana (docker compose)
+
+```bash
+docker compose up --build
+```
+
+- Backend: http://localhost:8000/docs
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000 (`admin` / `admin`)
+
+Остановить:
+
+```bash
+docker compose down
+```
+
+## Minikube monitoring
+
+Ручной запуск monitoring-стека в Kubernetes (это **не** CD и **не** Argo CD):
+
+```bash
+minikube start
+eval $(minikube docker-env)
+docker build -f docker/Dockerfile.backend -t mlops-eyes-backend:local .
+kubectl apply -f k8s/monitoring/namespace.yaml
+kubectl apply -f k8s/monitoring/
+kubectl get pods -n mlops-eyes
+kubectl get svc -n mlops-eyes
+```
+
+Port-forward:
+
+```bash
+kubectl port-forward svc/backend-service 8000:8000 -n mlops-eyes
+kubectl port-forward svc/prometheus-service 9090:9090 -n mlops-eyes
+kubectl port-forward svc/grafana-service 3000:3000 -n mlops-eyes
+```
+
+## Frontend
+
+Папка `frontend/` подготовлена отдельно. Полноценный UI будет добавлен следующим этапом.

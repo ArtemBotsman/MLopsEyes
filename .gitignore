@@ -7,3 +7,6 @@ __pycache__/
 .idea/
 .DS_Store
 ~$*
+data/predictions.db
+reports/drift/latest_drift_report.json
+reports/drift/latest_drift_report.html

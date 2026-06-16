@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard
+  namespace: mlops-eyes
+data:
+  mlops_eyes_dashboard.json: |
+    {
+      "title": "MLOps Eyes Dashboard",
+      "uid": "mlops-eyes-dashboard",
+      "panels": [
+        {"type": "stat", "title": "Total predictions", "targets": [{"expr": "mlops_predictions_total"}]},
+        {"type": "stat", "title": "Opened predictions", "targets": [{"expr": "mlops_opened_predictions_total"}]},
+        {"type": "stat", "title": "Closed predictions", "targets": [{"expr": "mlops_closed_predictions_total"}]},
+        {"type": "stat", "title": "Anomaly predictions", "targets": [{"expr": "mlops_anomaly_predictions_total"}]},
+        {"type": "timeseries", "title": "Prediction latency", "targets": [{"expr": "histogram_quantile(0.95, sum(rate(mlops_prediction_latency_seconds_bucket[5m])) by (le))"}]},
+        {"type": "timeseries", "title": "Prediction score", "targets": [{"expr": "histogram_quantile(0.5, sum(rate(mlops_prediction_score_bucket[5m])) by (le))"}]},
+        {"type": "stat", "title": "Drift alerts", "targets": [{"expr": "mlops_drift_alerts_total"}]},
+        {"type": "stat", "title": "Data drift flag", "targets": [{"expr": "mlops_data_drift_detected"}]},
+        {"type": "stat", "title": "Target drift flag", "targets": [{"expr": "mlops_target_drift_detected"}]},
+        {"type": "stat", "title": "Concept drift flag", "targets": [{"expr": "mlops_concept_drift_detected"}]}
+      ],
+      "schemaVersion": 39,
+      "version": 1
+    }
