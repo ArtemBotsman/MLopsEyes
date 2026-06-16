@@ -14,21 +14,44 @@
 
 Порог по умолчанию для текстовой интерпретации в CLI: **0.5**.
 
+## Архитектура и демонстрация
+
+| Режим | Назначение |
+|-------|------------|
+| **Docker Compose** | Локальная отладка всего стека |
+| **Kubernetes / Minikube** | **Финальная демонстрация** — backend, frontend, MLflow, Prometheus, Grafana через `k8s/monitoring/` |
+
+Важно:
+
+- **Старый CLI не сломан:** `python open_eyes_classifier.py <image>` работает как раньше.
+- **`POST /retrain` — MVP/mock:** endpoint и кнопка в UI только фиксируют событие; полноценный retrain pipeline — отдельный этап.
+
+## Порты (локально / docker compose)
+
+| Сервис | Host | Внутри Docker / k8s |
+|--------|------|---------------------|
+| Backend (FastAPI) | 8000 | `backend:8000` / `backend-service:8000` |
+| Streamlit | 8501 | `frontend:8501` / `frontend-service:8501` |
+| MLflow UI | 5001 | `mlflow:5000` / `mlflow-service:5000` |
+| Prometheus | 9090 | `prometheus:9090` / `prometheus-service:9090` |
+| Grafana | 3000 | `grafana:3000` / `grafana-service:3000` |
+| MinIO API / Console | 9000 / 9001 | `localhost:9000` / `localhost:9001` |
+
 ## Структура проекта
 
 | Файл / папка | Назначение |
 |--------------|------------|
 | `open_eyes_classifier.py` | CLI и класс `OpenEyesClassificator` для инференса |
 | `eye_cnn_best_val_final.pth` | Актуальные веса обученной модели |
-| `EyesDataset/` | Датасет для примеров и ручной проверки (`opened/`, `closed/`) |
+| `EyesDataset/` | Датасет для примеров (`opened/`, `closed/`), DVC-tracked (`EyesDataset.dvc`) |
 | `tests/test_cli.py` | Автотесты CLI (help, predict, диапазон score) |
 | `Dockerfile` | Образ для запуска классификатора в контейнере |
 | `.github/workflows/ci-cd.yml` | GitHub Actions: lint, test, build, publish |
 | `requirements.txt` | Runtime-зависимости (PyTorch, Pillow) |
 | `requirements-dev.txt` | Dev-зависимости (pytest, ruff) |
 | `backend/app/main.py` | FastAPI backend (инференс, drift, metrics) |
-| `frontend/` | Заготовка под Web UI (следующий этап) |
-| `docker-compose.yml` | Backend + Prometheus + Grafana |
+| `frontend/` | Streamlit Web UI |
+| `docker-compose.yml` | Backend + frontend + MLflow + Prometheus + Grafana |
 | `k8s/monitoring/` | Manifests для minikube |
 | `docs/drift_monitoring.md` | Документация по drift и мониторингу |
 
@@ -111,9 +134,7 @@ ghcr.io/artembotsman/mlopseyes:latest
 
 ## Что будет добавлено позже
 
-- DVC
-- MLflow
-- Полноценный Web UI в `frontend/`
+- Полноценное переобучение через MLflow pipeline
 - Argo CD (CD в самом конце проекта)
 
 ## Backend API
@@ -133,6 +154,39 @@ OpenAPI: http://localhost:8000/docs
 - `POST /drift/run`
 - `GET /drift/latest`
 - `GET /metrics`
+- `POST /retrain` — **MVP/mock** (не запускает обучение)
+- `GET /retrain/status`
+- `GET /experiments`
+- `GET /models`
+
+## MLflow tracking and registry
+
+```bash
+docker compose up --build
+MLFLOW_TRACKING_URI=http://localhost:5001 python -m backend.src.train --config configs/train.yaml --fast-dev-run
+```
+
+Открыть MLflow UI: http://localhost:5001
+
+Подробнее: `docs/mlflow.md`
+
+## DVC + MinIO
+
+Тяжёлые артефакты версионируются через DVC, remote storage — MinIO (S3-compatible):
+
+```bash
+docker compose -f docker-compose.minio.yml up -d
+dvc status
+dvc push
+dvc pull
+dvc repro
+```
+
+- MinIO console: http://localhost:9001 (`minioadmin` / `minioadmin`)
+- Bucket: `mlops-eyes`
+- DVC-tracked: `EyesDataset`, `EyesDataset2`, `eye_cnn_best_val_final.pth`
+
+Подробнее: `docs/dvc_minio.md`
 
 ## Drift reports
 
@@ -154,6 +208,8 @@ docker compose up --build
 ```
 
 - Backend: http://localhost:8000/docs
+- Frontend: http://localhost:8501
+- MLflow: http://localhost:5001
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000 (`admin` / `admin`)
 
@@ -165,12 +221,13 @@ docker compose down
 
 ## Minikube monitoring
 
-Ручной запуск monitoring-стека в Kubernetes (это **не** CD и **не** Argo CD):
+Ручной запуск monitoring-стека и Web UI в Kubernetes (это **не** CD и **не** Argo CD):
 
 ```bash
 minikube start
 eval $(minikube docker-env)
 docker build -f docker/Dockerfile.backend -t mlops-eyes-backend:local .
+docker build -f docker/Dockerfile.frontend -t mlops-eyes-frontend:local .
 kubectl apply -f k8s/monitoring/namespace.yaml
 kubectl apply -f k8s/monitoring/
 kubectl get pods -n mlops-eyes
@@ -181,10 +238,52 @@ Port-forward:
 
 ```bash
 kubectl port-forward svc/backend-service 8000:8000 -n mlops-eyes
+kubectl port-forward svc/frontend-service 8501:8501 -n mlops-eyes
+kubectl port-forward svc/mlflow-service 5000:5000 -n mlops-eyes
 kubectl port-forward svc/prometheus-service 9090:9090 -n mlops-eyes
 kubectl port-forward svc/grafana-service 3000:3000 -n mlops-eyes
 ```
 
-## Frontend
+Открыть:
 
-Папка `frontend/` подготовлена отдельно. Полноценный UI будет добавлен следующим этапом.
+- Frontend: http://localhost:8501
+- MLflow: http://localhost:5000
+- Backend docs: http://localhost:8000/docs
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000
+
+## Web UI
+
+UI реализован на **Streamlit** и доступен по http://localhost:8501.
+
+Страницы:
+
+- inference (загрузка изображения, score, label);
+- latest predictions (таблица с фильтрами);
+- anomaly flags;
+- drift notifications;
+- retraining button (MVP mock);
+- experiments placeholder (под MLflow);
+- system status (health + ссылки на мониторинг).
+
+Backend API: http://localhost:8000/docs
+
+Локально:
+
+```bash
+API_URL=http://localhost:8000 streamlit run frontend/streamlit_app.py
+```
+
+Через docker compose:
+
+```bash
+docker compose up --build
+```
+
+Подробнее: `frontend/README.md`
+
+## Cookiecutter project template
+
+Шаблон Cookiecutter для воспроизведения типовой MLOps-структуры (backend, frontend, docker, DVC, MLflow, monitoring) без датасетов и весов модели.
+
+Подробнее: [docs/cookiecutter.md](docs/cookiecutter.md)

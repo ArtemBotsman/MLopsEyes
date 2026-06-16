@@ -133,6 +133,7 @@ docker compose up --build
 Открыть:
 
 - Backend OpenAPI: http://localhost:8000/docs
+- MLflow: http://localhost:5001
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000
 
@@ -144,12 +145,13 @@ docker compose down
 
 ## Kubernetes / minikube
 
-Ручной запуск monitoring в Kubernetes (это **не** CD и **не** Argo CD):
+Ручной запуск monitoring и Web UI в Kubernetes (это **не** CD и **не** Argo CD):
 
 ```bash
 minikube start
 eval $(minikube docker-env)
 docker build -f docker/Dockerfile.backend -t mlops-eyes-backend:local .
+docker build -f docker/Dockerfile.frontend -t mlops-eyes-frontend:local .
 kubectl apply -f k8s/monitoring/namespace.yaml
 kubectl apply -f k8s/monitoring/
 kubectl get pods -n mlops-eyes
@@ -159,9 +161,19 @@ Port-forward:
 
 ```bash
 kubectl port-forward svc/backend-service 8000:8000 -n mlops-eyes
+kubectl port-forward svc/frontend-service 8501:8501 -n mlops-eyes
+kubectl port-forward svc/mlflow-service 5000:5000 -n mlops-eyes
 kubectl port-forward svc/prometheus-service 9090:9090 -n mlops-eyes
 kubectl port-forward svc/grafana-service 3000:3000 -n mlops-eyes
 ```
+
+Открыть:
+
+- Frontend: http://localhost:8501
+- MLflow: http://localhost:5000
+- Backend docs: http://localhost:8000/docs
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000
 
 Удалить ресурсы:
 
@@ -171,4 +183,4 @@ kubectl delete namespace mlops-eyes
 
 ## Frontend
 
-Папка `frontend/` подготовлена как отдельный модуль. Полноценный Web UI будет добавлен на следующем этапе и будет использовать backend API.
+Web UI реализован на Streamlit (`frontend/streamlit_app.py`) и доступен через docker compose или minikube (см. раздел Kubernetes выше).

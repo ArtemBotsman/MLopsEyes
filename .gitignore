@@ -13,7 +13,6 @@ reports/drift/latest_drift_report.html
 mlruns/
 artifacts/models/*.pth
 artifacts/training/
-
 /EyesDataset
 /EyesDataset2
 /eye_cnn_best_val_final.pth
