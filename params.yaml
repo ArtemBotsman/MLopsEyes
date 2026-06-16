@@ -1,0 +1,10 @@
+train:
+  epochs: 3
+  batch_size: 32
+  learning_rate: 0.001
+  fast_dev_run: true
+
+drift:
+  ks_alpha: 0.05
+  target_drift_threshold: 0.2
+  concept_drift_accuracy_threshold: 0.85

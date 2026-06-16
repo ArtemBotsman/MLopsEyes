@@ -1,0 +1,5 @@
+outs:
+- md5: 13ada3ffe5cd69fc3cc4ca9a7da7b7f5
+  size: 826345
+  hash: md5
+  path: eye_cnn_best_val_final.pth

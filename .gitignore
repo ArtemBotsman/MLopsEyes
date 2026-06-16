@@ -10,3 +10,7 @@ __pycache__/
 data/predictions.db
 reports/drift/latest_drift_report.json
 reports/drift/latest_drift_report.html
+
+/EyesDataset
+/EyesDataset2
+/eye_cnn_best_val_final.pth

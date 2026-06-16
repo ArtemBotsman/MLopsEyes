@@ -1,0 +1,6 @@
+[core]
+    remote = minio
+['remote "minio"']
+    url = s3://mlops-eyes/dvc
+    endpointurl = http://localhost:9000
+    use_ssl = false

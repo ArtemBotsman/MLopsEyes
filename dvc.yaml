@@ -1,0 +1,33 @@
+stages:
+  train:
+    cmd: python -m backend.src.train --config configs/train.yaml --fast-dev-run
+    deps:
+      - backend/src/train.py
+      - configs/train.yaml
+      - EyesDataset
+    params:
+      - params.yaml:
+          - train.epochs
+          - train.batch_size
+          - train.learning_rate
+    outs:
+      - artifacts/models/open_eyes_cnn_mlflow.pth:
+          cache: true
+
+  drift:
+    cmd: python -m backend.src.drift --reference EyesDataset --current data/incoming --output reports/drift
+    deps:
+      - backend/src/drift.py
+      - backend/src/features.py
+      - backend/src/reports.py
+      - EyesDataset
+      - data/incoming
+    params:
+      - params.yaml:
+          - drift.ks_alpha
+          - drift.target_drift_threshold
+    outs:
+      - reports/drift/latest_drift_report.json:
+          cache: false
+      - reports/drift/latest_drift_report.html:
+          cache: false

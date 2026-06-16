@@ -1,0 +1,6 @@
+outs:
+- md5: 9f157a6fbf82f1be73f153f5dc66ea06.dir
+  size: 1649032
+  nfiles: 3803
+  hash: md5
+  path: EyesDataset
