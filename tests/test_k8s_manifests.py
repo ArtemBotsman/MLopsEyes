@@ -32,3 +32,14 @@ def test_mlflow_deployment_exists():
 
 def test_mlflow_service_exists():
     assert (K8S_DIR / "mlflow-service.yaml").is_file()
+
+
+def test_mlflow_deployment_allows_service_host():
+    content = (K8S_DIR / "mlflow-deployment.yaml").read_text(encoding="utf-8")
+    assert "--allowed-hosts" in content
+    assert "mlflow-service" in content
+
+
+def test_backend_deployment_sets_mlflow_request_timeout():
+    content = (K8S_DIR / "backend-deployment.yaml").read_text(encoding="utf-8")
+    assert "MLFLOW_REQUEST_TIMEOUT" in content

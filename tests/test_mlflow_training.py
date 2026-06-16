@@ -62,3 +62,24 @@ def test_fast_dev_training_smoke(tmp_path, monkeypatch):
     assert summary["run_id"]
     assert "accuracy" in summary["metrics"]
     assert Path(summary["weights_path"]).exists()
+
+
+def test_list_experiments_returns_not_available_on_timeout(monkeypatch):
+    import time
+
+    from backend.app.services import mlflow_service
+
+    class SlowClient:
+        def search_experiments(self):
+            time.sleep(10)
+            return []
+
+    monkeypatch.setattr(mlflow_service, "MLFLOW_REQUEST_TIMEOUT", 0.1)
+    monkeypatch.setattr(mlflow_service, "_client", lambda: SlowClient())
+
+    started = time.perf_counter()
+    result = mlflow_service.list_experiments()
+    elapsed = time.perf_counter() - started
+
+    assert result["status"] == "not_available"
+    assert elapsed < 2

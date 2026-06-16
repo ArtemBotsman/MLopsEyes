@@ -30,5 +30,7 @@ spec:
               value: /app/reports/drift
             - name: MLFLOW_TRACKING_URI
               value: http://mlflow-service:5000
+            - name: MLFLOW_REQUEST_TIMEOUT
+              value: "5"
             - name: MLFLOW_URL
               value: http://localhost:5000

@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
+from typing import Any, Callable, TypeVar
 
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+MLFLOW_REQUEST_TIMEOUT = float(os.getenv("MLFLOW_REQUEST_TIMEOUT", "5"))
+
+T = TypeVar("T")
 
 
 def _client():
@@ -16,10 +21,27 @@ def _client():
     return MlflowClient()
 
 
+def _call_with_timeout(func: Callable[[], T]) -> T:
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(func)
+    try:
+        return future.result(timeout=MLFLOW_REQUEST_TIMEOUT)
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
+
+
+def _not_available(kind: str) -> dict[str, Any]:
+    return {
+        "status": "not_available",
+        "message": "MLflow tracking server is not available",
+        kind: None,
+    }
+
+
 def list_experiments() -> dict[str, Any]:
     try:
         client = _client()
-        experiments = client.search_experiments()
+        experiments = _call_with_timeout(lambda: client.search_experiments())
         payload = [
             {
                 "experiment_id": exp.experiment_id,
@@ -30,18 +52,14 @@ def list_experiments() -> dict[str, Any]:
             for exp in experiments
         ]
         return {"status": "ok", "experiments": payload}
-    except Exception:  # noqa: BLE001
-        return {
-            "status": "not_available",
-            "message": "MLflow tracking server is not available",
-            "experiments": None,
-        }
+    except (FuturesTimeoutError, Exception):  # noqa: BLE001
+        return _not_available("experiments")
 
 
 def list_registered_models() -> dict[str, Any]:
     try:
         client = _client()
-        models = client.search_registered_models()
+        models = _call_with_timeout(lambda: client.search_registered_models())
         payload = [
             {
                 "name": model.name,
@@ -57,9 +75,5 @@ def list_registered_models() -> dict[str, Any]:
             for model in models
         ]
         return {"status": "ok", "models": payload}
-    except Exception:  # noqa: BLE001
-        return {
-            "status": "not_available",
-            "message": "MLflow tracking server is not available",
-            "models": None,
-        }
+    except (FuturesTimeoutError, Exception):  # noqa: BLE001
+        return _not_available("models")

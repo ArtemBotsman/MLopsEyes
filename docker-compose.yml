@@ -16,6 +16,7 @@ services:
       - DRIFT_REPORT_DIR=/app/reports/drift
       - MODEL_WEIGHTS_PATH=/app/eye_cnn_best_val_final.pth
       - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_REQUEST_TIMEOUT=5
     depends_on:
       - mlflow
 
@@ -42,6 +43,7 @@ services:
       mlflow server
       --host 0.0.0.0
       --port 5000
+      --allowed-hosts mlflow,mlflow:5000,localhost,127.0.0.1
       --backend-store-uri sqlite:///mlflow/mlflow.db
       --default-artifact-root /mlflow/artifacts
     volumes:
