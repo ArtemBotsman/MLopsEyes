@@ -32,6 +32,17 @@ def init_db(db_path: Path | None = None) -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS retrain_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                status TEXT NOT NULL,
+                message TEXT NOT NULL,
+                mode TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
         conn.commit()
 
 
@@ -78,6 +89,50 @@ def list_predictions(limit: int = 50, db_path: Path | None = None) -> list[dict[
             "is_anomaly": bool(row["is_anomaly"]),
             "created_at": row["created_at"],
             "model_version": row["model_version"],
+        }
+        for row in rows
+    ]
+
+
+def save_retrain_event(
+    status: str,
+    message: str,
+    mode: str,
+    created_at: str,
+    db_path: Path | None = None,
+) -> int:
+    db_path = db_path or DEFAULT_DB_PATH
+    with _connect(db_path) as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO retrain_events (status, message, mode, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (status, message, mode, created_at),
+        )
+        conn.commit()
+        return int(cursor.lastrowid)
+
+
+def list_retrain_events(limit: int = 20, db_path: Path | None = None) -> list[dict[str, Any]]:
+    db_path = db_path or DEFAULT_DB_PATH
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            """
+            SELECT id, status, message, mode, created_at
+            FROM retrain_events
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [
+        {
+            "id": row["id"],
+            "status": row["status"],
+            "message": row["message"],
+            "mode": row["mode"],
+            "created_at": row["created_at"],
         }
         for row in rows
     ]

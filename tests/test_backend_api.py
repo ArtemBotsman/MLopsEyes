@@ -81,3 +81,23 @@ def test_drift_latest_when_report_missing(client, monkeypatch):
         "message": "drift report not generated yet",
         "report": None,
     }
+
+
+def test_retrain_endpoint(client):
+    response = client.post("/retrain")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "started"
+    assert payload["mode"] == "mock"
+    assert "Retraining job has been scheduled" in payload["message"]
+
+
+def test_retrain_status_endpoint(client):
+    client.post("/retrain")
+    response = client.get("/retrain/status")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "events" in payload
+    assert len(payload["events"]) >= 1
+    assert payload["events"][0]["status"] == "started"
+    assert payload["events"][0]["mode"] == "mock"

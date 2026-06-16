@@ -44,6 +44,24 @@ class DriftLatestResponse(BaseModel):
     report: dict | None = None
 
 
+class RetrainResponse(BaseModel):
+    status: str
+    message: str
+    mode: str
+
+
+class RetrainEvent(BaseModel):
+    id: int
+    status: str
+    message: str
+    mode: str
+    created_at: str
+
+
+class RetrainStatusResponse(BaseModel):
+    events: list[RetrainEvent] = Field(default_factory=list)
+
+
 class ExperimentsResponse(BaseModel):
     status: str
     message: str | None = None

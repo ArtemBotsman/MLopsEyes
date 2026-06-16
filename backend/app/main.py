@@ -18,12 +18,25 @@ from backend.app.schemas import (
     PredictionRecord,
     PredictionsListResponse,
     PredictResponse,
+    RetrainEvent,
+    RetrainResponse,
+    RetrainStatusResponse,
 )
 from backend.app.services.drift_service import get_latest_drift_report, run_drift_report
-from backend.app.services.metrics_service import record_drift_report, record_prediction
+from backend.app.services.metrics_service import (
+    record_drift_report,
+    record_prediction,
+    record_retrain_request,
+)
 from backend.app.services.mlflow_service import list_experiments, list_registered_models
 from backend.app.services.predictor import MODEL_VERSION, predict_upload
-from backend.app.storage import init_db, list_predictions, save_prediction
+from backend.app.storage import (
+    init_db,
+    list_predictions,
+    list_retrain_events,
+    save_prediction,
+    save_retrain_event,
+)
 
 app = FastAPI(
     title="Open Eyes Classifier API",
@@ -99,6 +112,26 @@ def drift_latest() -> DriftLatestResponse:
             message="drift report not generated yet",
         )
     return DriftLatestResponse(status="available", report=report)
+
+
+@app.post("/retrain", response_model=RetrainResponse)
+def retrain() -> RetrainResponse:
+    created_at = datetime.now(timezone.utc).isoformat()
+    message = "Retraining job has been scheduled in MVP mode"
+    record_retrain_request()
+    save_retrain_event(
+        status="started",
+        message=message,
+        mode="mock",
+        created_at=created_at,
+    )
+    return RetrainResponse(status="started", message=message, mode="mock")
+
+
+@app.get("/retrain/status", response_model=RetrainStatusResponse)
+def retrain_status(limit: int = 20) -> RetrainStatusResponse:
+    rows = list_retrain_events(limit=limit)
+    return RetrainStatusResponse(events=[RetrainEvent(**row) for row in rows])
 
 
 @app.get("/experiments", response_model=ExperimentsResponse)

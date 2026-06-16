@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: mlops-eyes
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: mlops-eyes-frontend:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8501
+          env:
+            - name: API_URL
+              value: http://backend-service:8000
+            - name: PROMETHEUS_URL
+              value: http://prometheus-service:9090
+            - name: GRAFANA_URL
+              value: http://grafana-service:3000
+            - name: MLFLOW_URL
+              value: http://mlflow-service:5000

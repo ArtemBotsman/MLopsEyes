@@ -19,6 +19,21 @@ services:
     depends_on:
       - mlflow
 
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://backend:8000
+      - PROMETHEUS_URL=http://localhost:9090
+      - GRAFANA_URL=http://localhost:3000
+      - MLFLOW_URL=http://localhost:5001
+    depends_on:
+      - backend
+      - mlflow
+
   mlflow:
     image: ghcr.io/mlflow/mlflow:latest
     ports:

@@ -49,6 +49,10 @@ CONCEPT_DRIFT_DETECTED = Gauge(
     "mlops_concept_drift_detected",
     "Concept drift detected flag (1=true, 0=false)",
 )
+RETRAIN_REQUESTS_TOTAL = Counter(
+    "mlops_retrain_requests_total",
+    "Total number of retraining requests",
+)
 
 
 def record_prediction(score: float, label: str, is_anomaly: bool, latency_seconds: float) -> None:
@@ -73,3 +77,7 @@ def record_drift_report(report: dict) -> None:
     CONCEPT_DRIFT_DETECTED.set(1 if concept_flag else 0)
     if data_flag or target_flag or concept_flag or report.get("status") == "warning":
         DRIFT_ALERTS_TOTAL.inc()
+
+
+def record_retrain_request() -> None:
+    RETRAIN_REQUESTS_TOTAL.inc()
