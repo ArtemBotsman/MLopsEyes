@@ -101,3 +101,34 @@ def test_retrain_status_endpoint(client):
     assert len(payload["events"]) >= 1
     assert payload["events"][0]["status"] == "started"
     assert payload["events"][0]["mode"] == "mock"
+
+
+def test_experiments_endpoint(client, monkeypatch):
+    monkeypatch.setattr(
+        "backend.app.main.list_experiments",
+        lambda: {
+            "status": "not_available",
+            "message": "MLflow tracking server is not available",
+            "experiments": None,
+        },
+    )
+    response = client.get("/experiments")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "not_available"
+    assert "MLflow" in payload["message"]
+
+
+def test_models_endpoint(client, monkeypatch):
+    monkeypatch.setattr(
+        "backend.app.main.list_registered_models",
+        lambda: {
+            "status": "not_available",
+            "message": "MLflow tracking server is not available",
+            "models": None,
+        },
+    )
+    response = client.get("/models")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "not_available"
