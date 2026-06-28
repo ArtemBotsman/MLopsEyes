@@ -1,0 +1,10 @@
+# Короткая конфигурация для быстрого переобучения (1–3 эпохи).
+# Переопределение: python scripts/retrain.py --epochs 2
+
+epochs: 2
+batch_size: 32
+learning_rate: 0.001
+dataset_path: EyesDataset
+experiment_name: open-eyes-classifier
+registered_model_name: open-eyes-cnn
+model_output_path: artifacts/models/open_eyes_cnn_retrain.pth

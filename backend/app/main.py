@@ -19,6 +19,7 @@ from backend.app.schemas import (
     PredictionsListResponse,
     PredictResponse,
     RetrainEvent,
+    RetrainRequest,
     RetrainResponse,
     RetrainStatusResponse,
 )
@@ -30,6 +31,7 @@ from backend.app.services.metrics_service import (
 )
 from backend.app.services.mlflow_service import list_experiments, list_registered_models
 from backend.app.services.predictor import MODEL_VERSION, predict_upload
+from backend.app.services.retrain_service import schedule_quick_retrain
 from backend.app.storage import (
     init_db,
     list_predictions,
@@ -115,17 +117,38 @@ def drift_latest() -> DriftLatestResponse:
 
 
 @app.post("/retrain", response_model=RetrainResponse)
-def retrain() -> RetrainResponse:
-    created_at = datetime.now(timezone.utc).isoformat()
-    message = "Retraining job has been scheduled in MVP mode"
+def retrain(body: RetrainRequest | None = None) -> RetrainResponse:
+    request = body or RetrainRequest()
+    try:
+        status, message = schedule_quick_retrain(request.epochs)
+    except FileNotFoundError:
+        message = (
+            "Retrain script is not available in this environment. "
+            "Run locally: python scripts/retrain.py --epochs "
+            f"{request.epochs}"
+        )
+        created_at = datetime.now(timezone.utc).isoformat()
+        record_retrain_request()
+        save_retrain_event(
+            status="not_available",
+            message=message,
+            mode="cli",
+            created_at=created_at,
+        )
+        return RetrainResponse(
+            status="not_available",
+            message=message,
+            mode="cli",
+            epochs=request.epochs,
+        )
+
     record_retrain_request()
-    save_retrain_event(
-        status="started",
+    return RetrainResponse(
+        status=status,
         message=message,
-        mode="mock",
-        created_at=created_at,
+        mode="quick",
+        epochs=request.epochs,
     )
-    return RetrainResponse(status="started", message=message, mode="mock")
 
 
 @app.get("/retrain/status", response_model=RetrainStatusResponse)

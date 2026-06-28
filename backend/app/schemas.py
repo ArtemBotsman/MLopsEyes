@@ -44,10 +44,15 @@ class DriftLatestResponse(BaseModel):
     report: dict | None = None
 
 
+class RetrainRequest(BaseModel):
+    epochs: int = Field(default=2, ge=1, le=3)
+
+
 class RetrainResponse(BaseModel):
     status: str
     message: str
     mode: str
+    epochs: int | None = None
 
 
 class RetrainEvent(BaseModel):

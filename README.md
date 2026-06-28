@@ -24,7 +24,7 @@
 Важно:
 
 - **Старый CLI не сломан:** `python open_eyes_classifier.py <image>` работает как раньше.
-- **`POST /retrain` — MVP/mock:** endpoint и кнопка в UI только фиксируют событие; полноценный retrain pipeline — отдельный этап.
+- **Retrain:** быстрое переобучение через `scripts/retrain.py` (1–3 эпохи) и кнопку в UI (`POST /retrain`).
 
 ## Порты (локально / docker compose)
 
@@ -54,8 +54,28 @@
 | `docker-compose.yml` | Backend + frontend + MLflow + Prometheus + Grafana |
 | `k8s/monitoring/` | Manifests для minikube |
 | `docs/drift_monitoring.md` | Документация по drift и мониторингу |
+| `docs/run_guide.md` | **Как запустить всё и каждый компонент** |
+| `scripts/retrain.py` | Быстрый retrain (1–3 эпохи) |
+| `configs/retrain.yaml` | Короткий конфиг для retrain |
 
 Дополнительно в репозитории: `project.ipynb` (обучение), скрипты ручной оценки `test_model_*.py`.
+
+## Быстрый старт
+
+Полное руководство по запуску каждого компонента: **[docs/run_guide.md](docs/run_guide.md)**
+
+```bash
+# 1. Зависимости
+python -m pip install -r requirements-dev.txt
+dvc pull   # датасет и веса
+
+# 2. Весь стек
+docker compose up --build
+
+# 3. Проверка
+curl http://localhost:8000/health
+open http://localhost:8501
+```
 
 ## Локальный запуск
 
@@ -132,9 +152,19 @@ ghcr.io/artembotsman/mlopseyes:latest
 - Docker build
 - Docker publish to GHCR
 
+## Retrain (быстрое переобучение)
+
+```bash
+python scripts/retrain.py --epochs 2
+# или через API:
+curl -X POST http://localhost:8000/retrain -H "Content-Type: application/json" -d '{"epochs": 2}'
+```
+
+Конфиг: `configs/retrain.yaml` (1–3 эпохи). Обучение логируется в MLflow.
+
 ## Что будет добавлено позже
 
-- Полноценное переобучение через MLflow pipeline
+- Retrain в k8s (Job + DVC dataset в кластере)
 - Argo CD (CD в самом конце проекта)
 
 ## Backend API
@@ -154,7 +184,7 @@ OpenAPI: http://localhost:8000/docs
 - `POST /drift/run`
 - `GET /drift/latest`
 - `GET /metrics`
-- `POST /retrain` — **MVP/mock** (не запускает обучение)
+- `POST /retrain` — быстрый retrain (1–3 эпохи, body: `{"epochs": 2}`)
 - `GET /retrain/status`
 - `GET /experiments`
 - `GET /models`
@@ -262,7 +292,7 @@ UI реализован на **Streamlit** и доступен по http://local
 - latest predictions (таблица с фильтрами);
 - anomaly flags;
 - drift notifications;
-- retraining button (MVP mock);
+- retraining button (1–3 эпохи через API);
 - experiments placeholder (под MLflow);
 - system status (health + ссылки на мониторинг).
 

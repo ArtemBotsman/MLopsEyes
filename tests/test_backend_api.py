@@ -83,24 +83,57 @@ def test_drift_latest_when_report_missing(client, monkeypatch):
     }
 
 
-def test_retrain_endpoint(client):
-    response = client.post("/retrain")
+def test_retrain_endpoint(client, monkeypatch):
+    monkeypatch.setattr(
+        "backend.app.main.schedule_quick_retrain",
+        lambda epochs: ("started", f"Quick retrain scheduled for {epochs} epoch(s)"),
+    )
+    response = client.post("/retrain", json={"epochs": 2})
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "started"
-    assert payload["mode"] == "mock"
-    assert "Retraining job has been scheduled" in payload["message"]
+    assert payload["mode"] == "quick"
+    assert payload["epochs"] == 2
+    assert "Quick retrain scheduled" in payload["message"]
 
 
-def test_retrain_status_endpoint(client):
-    client.post("/retrain")
+def test_retrain_endpoint_without_script(client, monkeypatch):
+    def raise_missing(epochs: int) -> tuple[str, str]:
+        raise FileNotFoundError("missing script")
+
+    monkeypatch.setattr("backend.app.main.schedule_quick_retrain", raise_missing)
+    response = client.post("/retrain", json={"epochs": 1})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "not_available"
+    assert payload["mode"] == "cli"
+    assert "python scripts/retrain.py" in payload["message"]
+
+
+def test_retrain_status_endpoint(client, monkeypatch):
+    from datetime import datetime, timezone
+
+    from backend.app.storage import save_retrain_event
+
+    def fake_schedule(epochs: int) -> tuple[str, str]:
+        message = f"Quick retrain scheduled for {epochs} epoch(s)"
+        save_retrain_event(
+            status="started",
+            message=message,
+            mode="quick",
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+        return "started", message
+
+    monkeypatch.setattr("backend.app.main.schedule_quick_retrain", fake_schedule)
+    client.post("/retrain", json={"epochs": 2})
     response = client.get("/retrain/status")
     assert response.status_code == 200
     payload = response.json()
     assert "events" in payload
     assert len(payload["events"]) >= 1
     assert payload["events"][0]["status"] == "started"
-    assert payload["events"][0]["mode"] == "mock"
+    assert payload["events"][0]["mode"] == "quick"
 
 
 def test_experiments_endpoint(client, monkeypatch):

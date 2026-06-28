@@ -32,9 +32,19 @@ def api_get(path: str, timeout: int = 30) -> tuple[dict | list | None, str | Non
         return None, str(exc)
 
 
-def api_post(path: str, files: dict | None = None, timeout: int = 120) -> tuple[dict | None, str | None]:
+def api_post(
+    path: str,
+    files: dict | None = None,
+    json_body: dict | None = None,
+    timeout: int = 120,
+) -> tuple[dict | None, str | None]:
     try:
-        response = requests.post(f"{API_URL}{path}", files=files, timeout=timeout)
+        response = requests.post(
+            f"{API_URL}{path}",
+            files=files,
+            json=json_body,
+            timeout=timeout,
+        )
         response.raise_for_status()
         return response.json(), None
     except requests.RequestException as exc:
@@ -217,18 +227,25 @@ def page_experiments() -> None:
 
 def page_retraining() -> None:
     st.header("Retraining")
-    st.write(
-        "В MVP-режиме кнопка фиксирует запрос на переобучение. "
-        "Полное переобучение и регистрация модели будут подключены на этапе MLflow."
+    st.caption(
+        "Быстрое переобучение через отдельный скрипт `scripts/retrain.py` "
+        "и конфиг `configs/retrain.yaml` (1–3 эпохи)."
     )
 
+    epochs = st.selectbox("Эпохи", options=[1, 2, 3], index=1)
+    st.code(f"python scripts/retrain.py --epochs {epochs}", language="bash")
+
     if st.button("Запустить переобучение", type="primary"):
-        with st.spinner("Отправка запроса..."):
-            result, error = api_post("/retrain")
+        with st.spinner("Отправка запроса в backend..."):
+            result, error = api_post("/retrain", json_body={"epochs": epochs})
         if error:
             st.error(f"Ошибка: {error}")
         elif result:
-            st.success(result.get("message", "Запрос принят"))
+            if result.get("status") == "not_available":
+                st.warning(result.get("message", "Скрипт недоступен в контейнере"))
+                st.info("Запустите команду выше локально из корня репозитория.")
+            else:
+                st.success(result.get("message", "Запрос принят"))
             st.json(result)
 
     st.subheader("История запросов")
